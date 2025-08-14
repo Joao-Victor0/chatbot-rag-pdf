@@ -1,0 +1,12 @@
+# Ambientes virtuais do Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+temp_files/
+output/
+chroma_db/
+ollama_models/
+.vscode/
+.idea/
