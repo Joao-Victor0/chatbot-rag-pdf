@@ -20,6 +20,7 @@ def save_uploaded_file(uploaded_file):
 def load_agent_from_file(_uploaded_file):
     st.write(f"Iniciando o processamento do arquivo: {_uploaded_file.name}")
     st.info("Aguarde, este processo pode levar alguns minutos na primeira vez...")
+    #st.warning("⚠️ EXECUTANDO A FUNÇÃO DE CACHE `load_agent_from_file`. Isso só deveria aparecer UMA VEZ por arquivo!")
 
     pdf_path = save_uploaded_file(_uploaded_file) #save the file and takes it path
 

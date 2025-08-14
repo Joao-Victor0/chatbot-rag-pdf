@@ -17,7 +17,7 @@ class AgentWithKnowledge:
         self.retriever = None
         self.retriever_chain = None
 
-        print("\n[] [DEBUG] Classe AgentWithKnowledge está sendo instanciada (só deve acontecer junto com o cache).")
+        #print("\n[] [DEBUG] Classe AgentWithKnowledge está sendo instanciada (só deve acontecer junto com o cache).")
 
     def setup_knowledge_base(self, pdf_path: str):
         embedding_function = OllamaEmbeddings(model="llama3")
@@ -27,12 +27,12 @@ class AgentWithKnowledge:
 
         #Vector Base, Embeddings and Retriever
         if os.path.exists(chroma_db_path):
-            print("⚡️ [DEBUG] CAMINHO RÁPIDO: Encontrou `chroma_db` e está carregando do disco.")
+            #print("⚡️ [DEBUG] CAMINHO RÁPIDO: Encontrou `chroma_db` e está carregando do disco.")
             db = Chroma(persist_directory=chroma_db_path, embedding_function=embedding_function)
 
         else:
             #PDF To JSON
-            print("🐢 [DEBUG] CAMINHO LENTO: Não encontrou `chroma_db`. Criando um novo banco de dados (ETAPA LENTA).")
+            #print("🐢 [DEBUG] CAMINHO LENTO: Não encontrou `chroma_db`. Criando um novo banco de dados (ETAPA LENTA).")
             os.makedirs(os.path.dirname(json_output_path), exist_ok=True)
             if not os.path.exists(json_output_path):
                 PdfToJson.extract_pdf_content(pdf_path=pdf_path)
@@ -49,7 +49,7 @@ class AgentWithKnowledge:
             )
 
         self.retriever = db.as_retriever()
-        print("✅ [DEBUG] Retriever foi configurado.")
+        #print("✅ [DEBUG] Retriever foi configurado.")
 
         #Context and Question
         system_template = """Você é um assistente de IA especialista em analisar documentos e responder perguntas acerca
@@ -75,7 +75,7 @@ class AgentWithKnowledge:
 
     def ask(self, query:str):
         #Response
-        print(f"💬 [DEBUG] Método `ask` chamado com a query: '{query}'")
+        #print(f"💬 [DEBUG] Método `ask` chamado com a query: '{query}'")
         if not self.retrieval_chain:
             return "Erro: A base de conhecimento não foi configurada. Chame o método setup_knowledge_base primeiro."
         
