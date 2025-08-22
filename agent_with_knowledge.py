@@ -13,7 +13,7 @@ from langchain_ollama import ChatOllama, OllamaEmbeddings
 
 class AgentWithKnowledge:
     def __init__(self):
-        self.model = ChatOllama(model="deepseek-r1:latest")
+        self.model = ChatOllama(model="gemma3:latest")
         self.retriever = None
         self.retriever_chain = None
 
