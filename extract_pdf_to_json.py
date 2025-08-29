@@ -5,7 +5,7 @@ import json
 import re
 
 class PdfToJson:
-    def extract_pdf_content(pdf_path, output_dir="output"):
+    def extract_pdf_content(pdf_path, index, output_dir="output"):
         os.makedirs(output_dir, exist_ok=True)
         image_dir = os.path.join(output_dir, "images")
         os.makedirs(image_dir, exist_ok=True)
@@ -63,7 +63,7 @@ class PdfToJson:
                     json_data[page_key]["images"].append(filepath)
 
         # Salva JSON
-        json_path = os.path.join(output_dir, "extracted_content.json")
+        json_path = os.path.join(output_dir, f"extracted_content({index}).json")
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(json_data, f, indent=4, ensure_ascii=False)
 

@@ -1,68 +1,35 @@
 import streamlit as st
-import os
-import re
-
 from agent_with_knowledge import AgentWithKnowledge
 
-
-def save_uploaded_file(uploaded_file):
-    temp_dir = "temp_files"
-    os.makedirs(temp_dir, exist_ok=True)
-    file_path = os.path.join(temp_dir, uploaded_file.name)
-
-    with open(file_path, "wb") as file:
-        file.write(uploaded_file.getbuffer())
-
-    return file_path
-
-
-@st.cache_resource
-def load_agent_from_file(_uploaded_file):
-    st.write(f"Iniciando o processamento do arquivo: {_uploaded_file.name}")
-    st.info("Aguarde, este processo pode levar alguns minutos na primeira vez...")
-    #st.warning("⚠️ EXECUTANDO A FUNÇÃO DE CACHE `load_agent_from_file`. Isso só deveria aparecer UMA VEZ por arquivo!")
-
-    pdf_path = save_uploaded_file(_uploaded_file) #save the file and takes it path
-
-    #setup agent
-    agent = AgentWithKnowledge()
-    agent.setup_knowledge_base(pdf_path=pdf_path)
-
-    st.success(f"Arquivo '{_uploaded_file.name}' processado! O agent está pronto!")
-    return agent
-
-
 def main():
-    st.title("📄 Agent With Knowledge")
-    st.markdown("Faça o upload de um PDF e converse com o agente.")
+    agent = AgentWithKnowledge()
 
+    #Estilização
+    st.header("📄 ChatBot Inteligente", divider=True)
+    st.markdown("Converse com o agente sobre os documentos")
+
+    #Sessão do Usuário
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    uploaded_file = st.file_uploader("Escolha um arquivo PDF para começar a conversa", type="pdf")
+    #Configurando o espaço de mensagens
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-    if uploaded_file is not None:
-        agent = load_agent_from_file(uploaded_file)
+    #Escrevendo a mensagem do usuário e do agente nos campos apropriados
+    if question:= st.chat_input("Digite aqui sua pergunta"):
+        st.session_state.messages.append({"role": "user", "content": question})
 
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+        with st.chat_message("user"): #abre o campo do usuário
+            st.markdown(question) #coloca a mensagem do usuário na tela
 
-        if prompt := st.chat_input("Pergunta algo sobre o documento: "):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
+        with st.chat_message("assistant"): #abre o campo do agente
+            with st.spinner("Pensando..."): #cria um efeito enquanto a resposta é carregada
+                response = agent.ask(query=question)
+                st.write(response) #coloca a resposta do agente na tela
 
-            with st.chat_message("assistant", avatar="🤖"):
-                with st.spinner("Pensando...."):
-                    raw_answer = agent.ask(prompt)
-                    clean_answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL).strip()
-                    st.write(clean_answer)
-
-            st.session_state.messages.append({"role": "assistant", "content": clean_answer})
-
-    else:
-        st.info("Aguardando uma pergunta")
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
 if __name__=="__main__":
     main()
