@@ -15,6 +15,7 @@ Este projeto demonstra a implementação de um chatbot inteligente capaz de resp
 -   `app.py`: O script principal que roda a interface web com Streamlit.
 -   `agent_with_knowledge.py`: Contém a classe principal do agente, encapsulando a lógica de RAG.
 -   `extract_pdf_to_json.py`: Classe auxiliar para extrair o conteúdo do PDF.
+-   `create_db.py`: Script de criação e tratamento da base de dados
 -   `requirements.txt`: Lista de dependências Python do projeto.
 -   `temp_files/`: Diretório temporário para armazenar os PDFs enviados.
 -   `output/`: Diretório temporário para armazenar o conteúdo JSON extraído.
@@ -63,7 +64,6 @@ pip install -r requirements.txt
 
 Este projeto serve como uma base sólida. Algumas possíveis melhorias futuras incluem:
 -   Implementar um botão para limpar o histórico do chat.
--   Adicionar suporte para múltiplos documentos simultaneamente.
 -   Otimizar a extração de texto para tabelas e imagens.
 -   Testar diferentes modelos de embedding e de geração para comparar performance e qualidade.
 -   Melhorar o tratamento de erros e o feedback para o usuário.
