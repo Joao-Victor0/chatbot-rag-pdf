@@ -22,7 +22,6 @@ class AgentWithKnowledge:
     
 
     def __setup_template(self): #define o template de pergunta e resposta do agent
-        #Context and Question
         prompt_template = """
         Você é um assistente de IA especialista em analisar documentos e responder perguntas acerca do documento. 
         Responda as perguntas estritamente baseado no contexto fornecido pelo documento abaixo:
@@ -31,7 +30,6 @@ class AgentWithKnowledge:
         Questão: {question}
         """
 
-        #Prompt and Model
         prompt = ChatPromptTemplate.from_template(template=prompt_template)
         return prompt
 
@@ -51,7 +49,11 @@ class AgentWithKnowledge:
         return chain
 
     def ask(self, query:str):
-        #Response
         chain = self.__setup_knowledge_base()        
         response = chain.invoke(query)
         return response.content
+    
+
+agent = AgentWithKnowledge()
+response = agent.ask("O que diz a PORTARIA NORMATIVA GR/UFRB Nº 06, DE 10 DE MAIO DE 2022")
+print(response)
