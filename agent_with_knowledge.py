@@ -9,6 +9,7 @@ class AgentWithKnowledge:
         self.model = ChatOllama(model="gemma3:latest")
         self.embedding_function = OllamaEmbeddings(model="llama3")
         self.CHROMA_PATH = "./chroma_db"
+        self.db = None
 
 
     def __setup_database(self): #importa a base de dados se já existir
@@ -36,9 +37,9 @@ class AgentWithKnowledge:
 
     def __setup_knowledge_base(self): #Configura a base de conhecimento a partir do Chain 
         #Configurações
-        db = self.__setup_database()
+        self.db = self.__setup_database()
         prompt = self.__setup_template()
-        retriever = db.as_retriever() #recupera as informacoes na base de dados
+        retriever = self.db.as_retriever(search_kwargs={"k": 8}) #recupera as informacoes na base de dados
 
         #Conecta a sequência de ações (como um fluxo de trabalho)
         chain = ({"context": retriever, "question": RunnablePassthrough()} 
@@ -52,8 +53,9 @@ class AgentWithKnowledge:
         chain = self.__setup_knowledge_base()        
         response = chain.invoke(query)
         return response.content
+        #results = self.db.similarity_search_with_relevance_scores(query=query, k=8)
+        #return results
     
-
-agent = AgentWithKnowledge()
-response = agent.ask("O que diz a PORTARIA NORMATIVA GR/UFRB Nº 06, DE 10 DE MAIO DE 2022")
-print(response)
+#agent = AgentWithKnowledge()
+#response = agent.ask("Quais as iniciativas presentes na Portaria Normativa Nº 06 de 10 de Maio de 2022?")
+#print(response)

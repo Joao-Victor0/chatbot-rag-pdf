@@ -5,7 +5,11 @@ import json
 import re
 
 class PdfToJson:
-    def extract_pdf_content(pdf_path, index, output_dir="output"):
+    def __init__(self):
+        pass
+
+
+    def extract_pdf_content(self, pdf_path, index, output_dir="output"):
         os.makedirs(output_dir, exist_ok=True)
         image_dir = os.path.join(output_dir, "images")
         os.makedirs(image_dir, exist_ok=True)
