@@ -33,10 +33,10 @@ Para executar este projeto, você precisará ter o seguinte software e bibliotec
 3.  **Modelos do Ollama:** Após instalar o Ollama, baixe os modelos necessários via terminal:
     ```bash
     # Modelo principal para geração de texto
-    ollama pull deepseek-r1:latest 
+    ollama pull gemma3:latest 
     
     # Modelo para criação de embeddings
-    ollama pull llama3
+    ollama pull mxbai-embed-large
     ```
 
 ### Bibliotecas Python
