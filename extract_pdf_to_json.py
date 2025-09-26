@@ -9,6 +9,30 @@ class PdfToJson:
         pass
 
 
+    def __clean_text(self, text: str) -> str:
+        #Removendo múltiplos espaços e quebras de linhas excessivas
+        text = re.sub(r"\s+", " ", text)
+
+        #Removendo cabeçalhos e rodapés
+        text = re.sub(r"MINISTÉRIO DA EDUCAÇÃO.*?REITORIA", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"Página \d+ de \d+", "", text, flags=re.IGNORECASE)
+
+        #Removendo assinaturas digitais, urls e protocolos
+        text = re.sub(r"Assinado digitalmente.*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"https?://\S+", "", text)
+        text = re.sub(r"Nº do Protocolo.*", "", text, flags=re.IGNORECASE)
+
+        #Padronizando artigos e parágrafos
+        text = re.sub(r"Art\. ?(\d+)", r"Artigo \1", text)
+        text = re.sub(r"§ ?(\d+)", r"Parágrafo \1", text)
+
+        #Normaliza as datas (yyyy-mm-dd)
+        text = re.sub(r"(\d{2})/(\d{2})/(\d{4})", r"\3-\2-\1", text)
+
+        #Removendo espaços extras
+        return text.strip()
+
+
     def extract_pdf_content(self, pdf_path, index, output_dir="output"):
         os.makedirs(output_dir, exist_ok=True)
         image_dir = os.path.join(output_dir, "images")
@@ -28,6 +52,7 @@ class PdfToJson:
 
                 # Texto completo e linhas individuais
                 text = page_plumber.extract_text()
+                text = self.__clean_text(text=text)
                 text_lines = text.split("\n") if text else []
                 json_data[page_key]["text"] = text.strip() if text else ""
 

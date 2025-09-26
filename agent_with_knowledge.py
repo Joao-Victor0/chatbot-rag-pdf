@@ -51,11 +51,11 @@ class AgentWithKnowledge:
 
     def ask(self, query:str):
         chain = self.__setup_knowledge_base()        
-        response = chain.invoke(query)
-        return response.content
-        #results = self.db.similarity_search_with_relevance_scores(query=query, k=8)
-        #return results
+        #response = chain.invoke(query)
+        #return response.content
+        results = self.db.similarity_search_with_relevance_scores(query=query, k=8)
+        return results
     
-#agent = AgentWithKnowledge()
-#response = agent.ask("Quais as iniciativas presentes na Portaria Normativa Nº 06 de 10 de Maio de 2022?")
-#print(response)
+agent = AgentWithKnowledge()
+response = agent.ask("Quais as iniciativas presentes na PORTARIA NORMATIVA Nº 06 de 22/03/2022?")
+print(response)
