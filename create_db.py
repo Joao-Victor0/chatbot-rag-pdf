@@ -1,13 +1,11 @@
 from extract_pdf_to_json import PdfToJson
-from langchain_community.document_loaders import JSONLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.text_splitter import RecursiveJsonSplitter
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
 from langchain.schema import Document
+from langchain_core.documents import Document
 
 import os
-import unicodedata
 import re
 import json
 
@@ -15,32 +13,47 @@ DIRECTORY = "./temp_files"
 JSON_DIRECTORY = "./output"
 
 def create_db():
-    documents = load_documents()
-    #chunks = split_chunks(documents=documents)
-    #vectorize_chunks(chunks)
+    documents = load_json_document()
+    chunks = split_json_chunks(documents=documents)
+    vectorize_json_chunks(chunks)
 
 
-def clean_data(document):
-    #Decodifica os espapes unicode
-    clean_text = document[0].page_content.encode("utf-8").decode("unicode_escape")
+def document_convert(file_path, data):
+    docs_in_file = []
 
-    #Normaliza os caracteres removendo as variações
-    clean_text = unicodedata.normalize("NFKC", clean_text)
+    #Tenta extrair o título/ID da primeira página
+    document_title = "Título Padrão ou Nome do Arquivo" #um fallback (plano B)
+    first_page_text = data.get("page_1", {}).get("text", "")
 
-    #Retira quebras de linha excessivas 
-    clean_text = re.sub(r"\s+", " ", clean_text)
-
-    #Cria um documento limpo
-    clean_document = Document(
-        page_content=clean_text,
-        metadata=document[0].metadata
-    )
-
-    return clean_document
+    #Tenta encontrar um padrão como "PORTARIA NORMATIVA N° XY"
+    match = re.search(r"(PORTARIA NORMATIVA.*?Nº\s*\d+)", first_page_text, re.IGNORECASE)
+    if match:
+        document_title = match.group(1).strip()
     
-    
+    for page_key, page_content in data.items(): #itera sobre cada página do arquivo
+        text = page_content.get("text", "") #extrai o texto limpo da página
+        if not text:
+            continue
 
-def load_documents():
+        try: #extrai o número da página
+            page_number = int(page_key.split("_")[1])
+
+        except (IndexError, ValueError):
+            page_number = None #lida com chaves mal formatadas se necessário
+
+        metadata = {
+            "source": file_path,
+            "page": page_number,
+            "title": document_title
+        }
+
+        doc_in_file = Document(page_content=text, metadata=metadata) #cria um arquivo do tipo Document para cada página do JSON
+        docs_in_file.append(doc_in_file)
+
+    return docs_in_file
+       
+
+def load_json_document():
     #Extrai e converte PDFs em JSON
     pdf_paths = os.listdir(DIRECTORY) #lista todos os PDFs
     for index, pdf_path in enumerate(pdf_paths):
@@ -51,105 +64,34 @@ def load_documents():
     json_paths = [file for file in os.listdir(JSON_DIRECTORY) if file.endswith('.json')] #lista os arquivos .json e ignora o resto
     for json_path in json_paths:
         file_path = os.path.join(JSON_DIRECTORY, json_path) #cria um caminho único juntando o nome do diretório com o nome do arquivo
-        loader = JSONLoader(file_path=file_path, jq_schema=".", text_content=False) #cria um carregador os arquivos JSON, somente
-        document = loader.load() #carrega o arquivo JSON
-        clean_document = clean_data(document=document) #limpa o arquivo JSON
+        
+        with open(file_path, 'r', encoding="utf-8") as fp:
+            data = json.load(fp)
 
-        documents.append(clean_document) #adiciona o documento a uma lista de documentos
+        document = document_convert(file_path=file_path, data=data)
+        documents.append(document) #adiciona o documento a uma lista de documentos
 
-    print(documents)
     return documents
 
 
-def split_chunks(documents):
+def split_json_chunks(documents):
     #Quebra os documentos em Chunks
     documents_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=400, #tamanho de cada chunk
-        chunk_overlap=50, #sobrepõe chunks, voltando 2500 chunks a partir do novo chunk, evitando perda de contexto
+        chunk_size=1000, #tamanho de cada chunk
+        chunk_overlap=150, #sobrepõe chunks, voltando 2500 chunks a partir do novo chunk, evitando perda de contexto
         length_function=len, #tamanho de cada chunk
         add_start_index=True
-    ) 
+    )
 
-    chunks = documents_splitter.split_documents(documents=documents) #cria chunks para cada documento e guarda todos juntos
+    #Pega a página de cada documento da lista de documentos e une todas elas em uma única lista de páginas identificadas por arquivo
+    joined_documents = [page_document for document in documents for page_document in document]
+
+    chunks = documents_splitter.split_documents(documents=joined_documents) #cria chunks para cada documento e guarda todos juntos
     return chunks
 
 
-def vectorize_chunks(chunks): #cria vetores numéricos com os chunks (para futuramente comparar a resposta do usuário com os números) 
-    embedding_function = OllamaEmbeddings(model='llama3:latest') #pega o modelo que realiza os embeddings
-    Chroma.from_documents(documents=chunks, embedding=embedding_function, persist_directory="chroma_db")
-
+def vectorize_json_chunks(chunks): #cria vetores numéricos com os chunks (para futuramente comparar a resposta do usuário com os números) 
+    embedding_function = OllamaEmbeddings(model='mxbai-embed-large') #pega o modelo que realiza os embeddings
+    Chroma.from_documents(documents=chunks, embedding=embedding_function, persist_directory="chroma_db") #cria o banco de dados vetorial
 
 create_db()
-
-#--------------------------------------------------------------------------------------------------#
-#                                   - OUTRA ABORDAGEM -
-# -------------------------------------------------------------------------------------------------#
-
-
-def clean_json(json_data):
-    if isinstance(json_data, dict): #se o arquivo JSON for do tipo dicionário
-        return {key: clean_json(value) for key, value in json_data.items()}
-
-    elif isinstance(json_data, list): #se o arquivo JSON for do tipo lista
-        return [clean_json(item) for item in json_data]
-    
-    elif isinstance(json_data, str): #se o arquivo JSON for uma string
-        clean_text = unicodedata.normalize("NFKC", json_data) #normaliza os caracteres removendo as variações
-        clean_text = re.sub(r"\s+", " ", clean_text) #retira quebras de linha excessivas 
-
-        return clean_text
-    
-    else:
-        return json_data
-
-
-def load_json_documents():
-    #Extrai e converte PDFs em JSON
-    pdf_paths = os.listdir(DIRECTORY) #lista todos os PDFs
-    for index, pdf_path in enumerate(pdf_paths):
-        PdfToJson().extract_pdf_content(pdf_path=os.path.join(DIRECTORY, pdf_path), index=index)
-
-    #Carrega os JSONs
-    json_datas = []
-    json_paths = [file for file in os.listdir(JSON_DIRECTORY) if file.endswith('.json')] #lista os arquivos .json e ignora o resto
-
-    for json_path in json_paths:
-        file_path = os.path.join(JSON_DIRECTORY, json_path) #cria um caminho único juntando o nome do diretório com o nome do arquivo
-
-        with open(file_path, 'r', encoding='utf-8') as file:
-            json_data = json.load(fp=file) #cria um carregador os arquivos JSON, somente
-
-        clean_document = clean_json(json_data=json_data) #limpa o arquivo JSON
-        json_datas.append(clean_document) #adiciona o documento a uma lista de documentos
-
-    return json_datas
-    
-
-def split_json_chunks(json_datas):
-    #Quebra os documentos em Chunks respeitando a estrutura de JSON
-    json_splitter = RecursiveJsonSplitter(
-        max_chunk_size=300 #tamanho máximo de cada chunk
-    )
-
-    json_chunks = []
-    for json_data in json_datas:
-        json_chunks.extend(json_splitter.split_json(json_data=json_data)) #cria chunks para cada documento e guarda todos juntos
-
-    #Transformando os chunks no tipo Document
-    document_chunks = []
-    for chunk in json_chunks:
-        #As informações do chunk para uma string que contém o conteúdo
-        page_content = json.dumps(chunk, ensure_ascii=False, indent=2) #parametros de mantimento de caracteres especiais e legibilidade
-
-        #Dicionário de Metadados
-        metadata = {}
-
-        #Criando um Document
-        document = Document(
-            page_content=page_content,
-            metadata=metadata
-        )
-
-        document_chunks.append(clean_data(document=document))
-
-    return document_chunks

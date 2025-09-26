@@ -7,7 +7,7 @@ from langchain_ollama import ChatOllama, OllamaEmbeddings
 class AgentWithKnowledge:
     def __init__(self):
         self.model = ChatOllama(model="gemma3:latest")
-        self.embedding_function = OllamaEmbeddings(model="llama3")
+        self.embedding_function = OllamaEmbeddings(model="mxbai-embed-large")
         self.CHROMA_PATH = "./chroma_db"
         self.db = None
 
@@ -48,14 +48,48 @@ class AgentWithKnowledge:
         )
 
         return chain
+    
+
+    def __setup_filter_query_extraction(self, query:str) -> str: #Usa uma LLM para obter o identificador do documento com base no query
+        prompt_template = """
+        Você é um assistente de IA especialista em análise de texto, agindo como um roteador de queries. Sua única tarefa é ler a pergunta do usuário e extrair o identificador completo e exato de um documento.
+
+        O formato que eu preciso que você retorne é sempre 'PORTARIA NORMATIVA GR/UFRB Nº XX', onde XX é o número do documento.
+
+        Se a pergunta não mencionar um documento específico, responda com a string 'N/A'. Não adicione nenhuma outra palavra ou explicação.
+
+        Exemplos:
+        Pergunta: "O que a portaria nº 06 diz sobre o uso de máscaras?"
+        Sua Resposta: PORTARIA NORMATIVA GR/UFRB Nº 06
+
+        Pergunta: "Me fale sobre as regras da portaria normativa 7 da UFRB."
+        Sua Resposta: PORTARIA NORMATIVA GR/UFRB Nº 07
+
+        Pergunta: "Quais documentos falam sobre inovação?"
+        Sua Resposta: N/A
+
+        Agora, analise a seguinte pergunta: "{query}"
+        """
+
+        prompt = prompt_template.format(query=query)
+        filter_response = self.model.invoke(prompt).content
+        return filter_response
 
     def ask(self, query:str):
         chain = self.__setup_knowledge_base()        
         #response = chain.invoke(query)
         #return response.content
-        results = self.db.similarity_search_with_relevance_scores(query=query, k=8)
+
+        document_filter = self.__setup_filter_query_extraction(query=query)
+
+        if document_filter != "N/A":
+            results = self.db.similarity_search_with_relevance_scores(query=query, k=4, filter={"title": document_filter})
+
+        else:
+            results = self.db.similarity_search_with_relevance_scores(query=query, k=8)
+
         return results
     
 agent = AgentWithKnowledge()
-response = agent.ask("Quais as iniciativas presentes na PORTARIA NORMATIVA Nº 06 de 22/03/2022?")
+response = agent.ask("Quais as iniciativas presentes na PORTARIA NORMATIVA Nº 05 de 22/03/2022?")
 print(response)
